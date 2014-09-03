@@ -15,7 +15,7 @@
 #include <errno.h>
 
 #define ECHO_PORT 9999
-#define BUF_SIZE 4096
+#define BUF_SIZE 1000000
 
 int close_socket(int sock)
 {
@@ -104,6 +104,7 @@ int main(int argc, char* argv[])
                 {
                     bytes = 0;
                     bytes = read(i, buf, BUF_SIZE);
+
 
                     if(bytes <= 0)
                     {
