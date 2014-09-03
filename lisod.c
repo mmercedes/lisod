@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#define ECHO_PORT 9999
 #define BUF_SIZE 4096
 
 int close_socket(int sock)
@@ -28,18 +29,17 @@ int close_socket(int sock)
 
 int main(int argc, char* argv[])
 {
-    int sock, new_sock, i;
+    int sock, new_sock, i, port;
     ssize_t bytes;
     struct sockaddr_in addr;
     char buf[BUF_SIZE];
     fd_set readfds, writefds, readyfds;
 
-    if(argc != 2){
-        printf("usage: %s <port>\n", argv[0]);
-        return 0;
-    }
 
-    int port = atoi(argv[1]);
+    if(argc != 2){
+        port = ECHO_PORT;
+    }
+    else port = atoi(argv[1]);
 
     fprintf(stdout, "----- Echo Server -----\n");
 

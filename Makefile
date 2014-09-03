@@ -7,10 +7,10 @@
 #                                                                              #
 ################################################################################
 
-default: echo_server
+default: lisod
 
-echo_server:
-	@gcc echo_server.c -o echo_server -Wall -Werror
+lisod:
+	@gcc lisod.c -o lisod -Wall -Werror
 
 clean:
-	@rm echo_server
+	@rm lisod
