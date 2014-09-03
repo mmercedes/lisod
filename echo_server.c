@@ -14,7 +14,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#define ECHO_PORT 9999
 #define BUF_SIZE 4096
 
 int close_socket(int sock)
@@ -35,7 +34,15 @@ int main(int argc, char* argv[])
     char buf[BUF_SIZE];
     fd_set readfds, writefds, readyfds;
 
+    if(argc != 2){
+        printf("usage: %s <port>\n", argv[0]);
+        return 0;
+    }
+
+    int port = atoi(argv[1]);
+
     fprintf(stdout, "----- Echo Server -----\n");
+
     
     if((sock = socket(PF_INET, SOCK_STREAM, 0)) == -1)
     {
@@ -44,7 +51,7 @@ int main(int argc, char* argv[])
     }
 
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(ECHO_PORT);
+    addr.sin_port = htons(port);
     addr.sin_addr.s_addr = INADDR_ANY;
 
     if(bind(sock, (struct sockaddr *) &addr, sizeof(addr)))
@@ -69,7 +76,7 @@ int main(int argc, char* argv[])
     {
         readfds = readyfds;
         writefds = readyfds;
-        if(select (FD_SETSIZE, &readfds, &writefds, NULL, NULL) < 0)
+        if(select(FD_SETSIZE, &readfds, &writefds, NULL, NULL) < 0)
         {
             fprintf(stderr, "select() returned error.\n");
             return EXIT_FAILURE;
@@ -79,7 +86,7 @@ int main(int argc, char* argv[])
         for(i = 0; i < FD_SETSIZE; i++)
         {
             // the ith fd is ready to be read from
-            if(FD_ISSET (i, &readfds))
+            if(FD_ISSET(i, &readfds))
             {
                 // new connection request
                 if(i == sock)
@@ -98,13 +105,6 @@ int main(int argc, char* argv[])
                     bytes = 0;
                     bytes = read(i, buf, BUF_SIZE);
 
-                    if(write(i, buf, bytes) != bytes)
-                    {
-                        close_socket(i);
-                        fprintf(stderr, "Error sending to client.\n");
-                    }
-                    memset(buf, 0, BUF_SIZE);
-
                     if(bytes <= 0)
                     {
                         // remove fd from fd_set when closing connection
@@ -112,6 +112,13 @@ int main(int argc, char* argv[])
                         close_socket(i);
                         if(bytes == -1) fprintf(stderr, "Error reading from client socket.\n");
                     }
+                    else if(write(i, buf, bytes) != bytes)
+                    {
+                        FD_CLR(i, &readyfds);
+                        close_socket(i);
+                        fprintf(stderr, "Error sending to client.\n");
+                    }
+                    memset(buf, 0, BUF_SIZE);
                 }
             }
         } 
