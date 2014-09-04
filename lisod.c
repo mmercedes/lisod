@@ -15,7 +15,6 @@
 #include <errno.h>
 
 #define ECHO_PORT 9999
-#define BUF_SIZE 1000000
 
 int close_socket(int sock)
 {
@@ -30,11 +29,13 @@ int close_socket(int sock)
 int main(int argc, char* argv[])
 {
     int sock, new_sock, i, port;
-    ssize_t bytes;
+    ssize_t bytes, buf_size;
     struct sockaddr_in addr;
-    char buf[BUF_SIZE];
+    char* buf;
     fd_set readfds, writefds, readyfds;
 
+    buf_size = 4096;
+    buf = malloc(buf_size*sizeof(char));
 
     if(argc < 2){
         port = ECHO_PORT;
@@ -88,6 +89,7 @@ int main(int argc, char* argv[])
             // the ith fd is ready to be read from
             if(FD_ISSET(i, &readfds))
             {
+                //printf("reading fd %d\n", i);
                 // new connection request
                 if(i == sock)
                 {
@@ -100,12 +102,12 @@ int main(int argc, char* argv[])
                     FD_SET(new_sock, &readyfds);
                 }
                 // connection already established and ready to be written to
-                else if(FD_ISSET(i, &writefds))
+                else //if(FD_ISSET(i, &writefds))
                 {
                     bytes = 0;
-                    bytes = read(i, buf, BUF_SIZE);
+                    bytes = read(i, buf, buf_size);
 
-
+                    //printf("read %d bytes\n", (int)bytes);
                     if(bytes <= 0)
                     {
                         // remove fd from fd_set when closing connection
@@ -119,12 +121,20 @@ int main(int argc, char* argv[])
                         close_socket(i);
                         fprintf(stderr, "Error sending to client.\n");
                     }
-                    memset(buf, 0, BUF_SIZE);
+                    //printf("wrote %d bytes\n", (int)bytes);
+
+                    if(bytes == buf_size){
+                        free(buf);
+                        buf_size = buf_size*2;
+                        buf = malloc(buf_size*sizeof(char));
+                        //printf("BUF_SIZE DOUBLED\n");
+                    }
+                    else memset(buf, 0, buf_size);
                 }
             }
         } 
     }
     close_socket(sock);
-
+    free(buf);
     return EXIT_SUCCESS;
 }
