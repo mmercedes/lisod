@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
     fd_set readfds, writefds, readyfds;
 
 
-    if(argc != 2){
+    if(argc < 2){
         port = ECHO_PORT;
     }
     else port = atoi(argv[1]);
