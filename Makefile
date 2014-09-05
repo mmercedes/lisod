@@ -10,7 +10,7 @@
 default: lisod
 
 lisod:
-	@gcc test.c -o lisod -Wall -Werror
+	@gcc lisod.c -o lisod -Wall -Werror
 
 clean:
 	@rm lisod
