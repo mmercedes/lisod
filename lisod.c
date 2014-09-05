@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
                     bytes = 0;
                     bytes = read(i, buf, buf_size);
 
-                    //printf("read %d bytes\n", (int)bytes);
+                    printf("read %d bytes\n", (int)bytes);
                     if(bytes <= 0)
                     {
                         // remove fd from fd_set when closing connection

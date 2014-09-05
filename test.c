@@ -39,7 +39,7 @@ int close_socket(int sock)
 
 int read_to_buf(int fd, Buffer** bufs)
 {
-    errno = 0;
+    //errno = 0;
 
     Buffer* buf = bufs[fd];
     int bytes = read(fd, buf->data + buf->offset, buf->size - buf->offset);
@@ -51,9 +51,6 @@ int read_to_buf(int fd, Buffer** bufs)
         buf->size = buf->size * 2;
         buf->data = realloc(buf->data, buf->size);
     }
-    if(errno == EAGAIN || errno == EWOULDBLOCK) bytes = 0;
-
-    //printf("returned %d bytes\n", (int)bytes);
     return bytes;
 }
 
@@ -69,8 +66,6 @@ int write_from_buf(int fd, Buffer** bufs)
         fprintf(stderr, "Error sending to client\n");
     }
 
-    //printf("wrote %d bytes\n", bytes);
-
     memset(buf->data, 0, buf->size);
     buf->offset = 0;
     return bytes;
@@ -82,11 +77,10 @@ void new_buf(int fd, Buffer** bufs)
     
     buf->size = DEF_BUF_SIZE;
     buf->offset = 0;
-    buf->data = calloc(DEF_BUF_SIZE, sizeof(char));
+    //buf->data = calloc(DEF_BUF_SIZE, sizeof(char));
 
     bufs[fd] = buf;
 
-    printf("NEW BUF %d\n", fd);
     return;
 }
 
@@ -95,7 +89,7 @@ int main(int argc, char* argv[])
     int sock, new_sock, i, port;
     ssize_t bytes;
     struct sockaddr_in addr;
-    fd_set readfds, writefds, readyfds;
+    fd_set readfds, writefds, readyfds, wreadyfds;
 
     Buffer** bufs = malloc(MAX_FDS*sizeof(Buffer*));
 
@@ -139,11 +133,12 @@ int main(int argc, char* argv[])
     // clear the set of ready fds
     FD_ZERO (&readyfds);
     FD_SET (sock, &readyfds);
+    FD_ZERO(&wreadyfds);
 
     while(1)
     {
         readfds = readyfds;
-        writefds = readyfds;
+        writefds = wreadyfds;
         if(select(FD_SETSIZE, &readfds, &writefds, NULL, NULL) < 0)
         {
             fprintf(stderr, "select() returned error.\n");
@@ -156,7 +151,6 @@ int main(int argc, char* argv[])
             // the ith fd is ready to be read from
             if(FD_ISSET(i, &readfds))
             {
-                //printf("reading fd %d\n", i);
                 // new connection request
                 if(i == sock)
                 {
@@ -166,44 +160,33 @@ int main(int argc, char* argv[])
                         fprintf(stderr, "accept() returned error.\n");
                         return EXIT_FAILURE;
                     }
-                    fcntl(new_sock, F_SETFL, fcntl(new_sock, F_GETFL) | O_NONBLOCK);
+                    //fcntl(new_sock, F_SETFL, fcntl(new_sock, F_GETFL) | O_NONBLOCK);
                     FD_SET(new_sock, &readyfds);
+                    bufs[new_sock]->data = malloc(DEF_BUF_SIZE*sizeof(char));
                     //new_buf(new_sock, bufs);
                 }
                 // connection already established and ready to be written to
-                else //if(FD_ISSET(i, &writefds))
+                else
                 {
                     bytes = 0;
 
+                    // ONLY ONE READ/WRITE PER SOCKET PER SELECT CALL!!!!!!!!!!!!!!!!!!
                     bytes = read_to_buf(i, bufs);
 
-                    // if(bytes < 0){
-                    //     FD_CLR(i, &readyfds);
-                    //     close_socket(i);
-                    //     fprintf(stderr, "Error reading from client socket.\n");
-                    // }
-                    // while((bytes = read_to_buf(i, bufs)) > 0){
-                    //     printf("read %d bytes\n", (int)bytes);
-                    // }
-
-                    // if(bytes == 0){
-                    //     write_from_buf(i, bufs);
-                    //     FD_CLR(i, &readyfds);
-                    //     close_socket(i);
-                    // }
                     if(bytes < 0)
                     {
                         // remove fd from fd_set when closing connection
                         FD_CLR(i, &readyfds);
                         close_socket(i);
-                        fprintf(stderr, "Error reading from client socket.\n");
+                        //fprintf(stderr, "Error reading from client socket.\n");
+                    }
+                    else
+                    {
+                        FD_SET(i, &wreadyfds);
                     }
                 }
             }
-        }
-        for(i = 0; i < FD_SETSIZE; i++)
-        {
-            if(!FD_ISSET(i, &readfds) && FD_ISSET(i, &writefds))
+            else if(FD_ISSET(i, &writefds))
             {
                 if(write_from_buf(i, bufs) < 0)
                 {
@@ -211,8 +194,9 @@ int main(int argc, char* argv[])
                     close_socket(i);
                     fprintf(stderr, "Error writing to client\n");
                 }
+                FD_CLR(i, &wreadyfds);
             }
-        } 
+        }
     }
     close_socket(sock);
     //free(bufs);
