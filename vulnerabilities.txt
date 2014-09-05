@@ -1,0 +1,3 @@
+-Has a connection limit of 1024
+-Will try and store all the data a client sends into a buffer with no limit to the buffer's growth
+-No signal handling

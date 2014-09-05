@@ -1,0 +1,3 @@
+lisod.c :
+	A single-threaded server that loops on a call to select() with a set of file descriptors representing seperate connections. 
+	Once a connection is made and it is added to set of file descriptors. Once the connection is ready to be read from, the data received will be read into a buffer located in an array of buffers (one for each connection). Many buffers can be filled before any writing needs to occur as the buffers will resize as necessary. Once a connection no longer has any data to read it will be added to the set of writable file descriptors. Then it will be written to, along with any other writable connections. A connection is only closed by the server if the server recieves an error when trying to read or write from it. 
