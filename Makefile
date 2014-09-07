@@ -7,10 +7,18 @@
 #                                                                              #
 ################################################################################
 
-default: lisod
+CC = gcc
+CFLAGS = -g -Wall -Werror
 
-lisod:
-	@gcc lisod.c -o lisod -Wall -Werror
+all: lisod
+
+log.o: log.c log.h
+	$(CC) $(CFLAGS) -c log.c
+
+lisod.o: lisod.c log.h
+	$(CC) $(CFLAGS) -c lisod.c
+
+lisod: lisod.o log.o
 
 clean:
-	@rm lisod
+	@rm -f lisod.o log.o lisod

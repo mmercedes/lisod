@@ -14,10 +14,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include "log.h"
 
-#define ECHO_PORT 9999
 #define MAX_FDS 1024
 #define DEF_BUF_SIZE 10000
+#define USAGE "./lisod <HTTP port> <HTTPS port> <log file> <lock file> <www folder> <CGI script path> <private key file> <certificate file>\n"
 
 
 // struct to contain an IO buffer with size and current offset fields
@@ -60,9 +61,15 @@ int main(int argc, char* argv[])
 
     Buffer** bufs = malloc(MAX_FDS*sizeof(Buffer*));
 
-    // default to ECHO_PORT if no port given
-    if(argc < 2) port = ECHO_PORT;
-    else port = atoi(argv[1]);
+    if(argc < 2){
+        printf(USAGE);
+        return 0;
+    }
+    log_start("log.txt");
+    log_msg(L_ERR, "testing log %d %s", 120, "loglog");
+    log_end();
+
+    port = atoi(argv[1]);
 
     fprintf(stdout, "----- Echo Server on port %d-----\n", port);
     
